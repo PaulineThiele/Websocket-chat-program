@@ -1,14 +1,13 @@
-// Connect Client to Server 
 (async function() {
 
     const ws = await connectToServer();    
 
-    // receive Websocket Message
+    // receive Websocket message
     ws.onmessage = (webSocketMessage) => {
         const messageBody = JSON.parse(webSocketMessage.data);
         const cursor = getOrCreateCursorFor(messageBody);
         cursor.style.transform = `translate(${messageBody.x}px, ${messageBody.y}px)`;
-        //create textfield through function createtextfield()
+
         if(messageBody.val != null)
         {
             receiveTextMessage(messageBody);
@@ -19,24 +18,21 @@
         console.log("closed");
     };
     
-    // Cursorbewegung erkennen und durch Json datei an Server senden 
+    //recognized cursor movement 
     document.body.onmousemove = (evt) => {
         const messageBody = { x: evt.clientX, y: evt.clientY };
         ws.send(JSON.stringify(messageBody));
     };
 
-    // es soll nur für mich eine Textbox erscheinen an Stelle x/y
-    // in diese schreibe ich meinen Text
-    // wenn ich enter drücke soll der Text an der Stelle als Textfeld in der richtigen Farbe erscheinen 
     document.body.onclick = (evt) => { 
         var X = evt.clientX;
         var Y = evt.clientY;
         createInputText(X,Y);
     };
 
-    //Bestätigungsfunktion für eine Verbindung zwischen Client und Server  
+    //connect client to server  
     async function connectToServer() {    
-        const ws = new WebSocket('ws://localhost:7071/ws');
+        const ws = new WebSocket('ws://192.168.178.51:7071/ws');
         return new Promise((resolve, reject) => {
             const timer = setInterval(() => {
                 if(ws.readyState === 1) {
@@ -54,7 +50,7 @@
             return existing;
         }
         
-        // wenn kein Cursor gefunden wurde, dann Template clonen und mit Daten füllen 
+        //if no cursor was found, clone cursor template and fill with data  
         const template = document.getElementById('cursor');
         const cursor = template.content.firstElementChild.cloneNode(true);
         const svgPath = cursor.getElementsByTagName('path')[0];    
@@ -110,10 +106,5 @@
                 sendTextMessage(X, Y, inputfield.value); 
             }
         });
-    }
-
-    function leaveChat()
-    {
-        window.close();
     }
 })();

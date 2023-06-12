@@ -2,56 +2,50 @@
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 7071 });
 
-// create map to store clients metadata (ID, Farbe) --> like a dictionary
+// create map to store clients metadata (ID, color)
 const clients = new Map();
+const allMessagesArray = [];
 
-const allMessagesArray = []; // was zur hölle tut es??
-
-// Verbindung eines neuen Clients mit dem Websocketserver & Speicherung der Metadaten des Clients 
+// if client is connectetd to server  
 wss.on('connection', (ws, req) => {
-    const id = uuidv4();                              //generieren einer individuellen ID
-    const color = Math.floor(Math.random() * 360);    // Zahl zwischen 0 & 1 --> multipliziert mit 360 --> Farbe auf dem HSV Farbraum 
-    const metadata = { id, color, ip: req.socket.remoteAddress };                   // object mit ID und color 
+    const id = uuidv4();                              //creates individual ID
+    const color = Math.floor(Math.random() * 360);    //number between 0 & 1 --> * 360 --> color on the HSV spectrum 
+    const metadata = { id, color, ip: req.socket.remoteAddress };
 
-    clients.set(ws, metadata);      //add new client to map
+    clients.set(ws, metadata);                        //add new client to map
     allMessagesArray.forEach(message => ws.send(JSON.stringify(message)));
 
-    ws.on('message', (messageAsString) => {           //wird aufgerufen, wenn der Server eine Nachricht emfängt 
-      const message = JSON.parse(messageAsString);    //Nachricht aus Json Datei auslesen 
-      const metadata = clients.get(ws);               //Metadaten des Clients aus Map rauslesen
+    ws.on('message', (messageAsString) => {           //if the server receives a new message 
+      const message = JSON.parse(messageAsString);    //read json data
+      const metadata = clients.get(ws);               //read metadata from map
 
-      // die beiden Inhalte (ID & color) des Clients an die Nachricht hängen 
+      //add ID and color to the message  
       message.sender = metadata.id;
       message.color = metadata.color;
-      console.log(message);
 
       allMessagesArray.push(message);
 
-      // an alle anderen verbundenen Clients wird die Nachricht geschickt
+      //send message to all clients
       [...clients.keys()].forEach((client) => {
         client.send(JSON.stringify(message));
       });
 
       ws.on('close', () => {
-        clients.delete(ws);
-        console.log("Client with IP address "+ metadata.ip +" has left the session.");
-
-        //überprüfen ob alle Clients das Browserfenster geschlossen haben 
-        if(clients.size === 0){
+        if(clients.has(ws)){
+          const metadata = clients.get(ws);
+          clients.delete(ws);
+          console.log("Client with IP address "+ metadata.ip +" has left the session.");
+          
+          //checks if all clients left 
+          if(clients.size === 0){
           console.log("Session ended for all clients.");
           wss.close();
+          }
         }
       })
     });  
 });
 
-// wenn Client die Verbindung schließt, alle metadaten dieses Clients von der Map entfernen
-//wss.on("close", (ws) => {
-  //clients.delete(ws);
-  //console.log("user disconnected");
-//});
-
-//Funktion zum Erstellen einer individuellen ID 
 function uuidv4() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -60,4 +54,3 @@ function uuidv4() {
 }
 
 console.log("wss up");
-//wss.close();
